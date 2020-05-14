@@ -4,6 +4,16 @@
 // https://tools.ietf.org/html/rfc8032, https://en.wikipedia.org/wiki/EdDSA
 // Includes Ristretto. https://ristretto.group
 
+import { SHA512 } from "https://denopkg.com/chiefbiiko/sha512/mod.ts";
+
+const sha512 = (message: Uint8Array ) : Uint8Array => {
+	const result = new SHA512().update(message).digest()
+	if (typeof result === 'string') {
+		throw new Error("SHA256 digest should be an Uint8Array")
+	}
+	return result
+}
+
 const CURVE = {
   // Params: a, b
   a: -1n,
@@ -506,30 +516,7 @@ class SignResult {
 export { ExtendedPoint, Point, SignResult };
 
 // SHA512 implementation.
-let sha512: (message: Uint8Array) => Promise<Uint8Array>;
 let randomPrivateKey = (bytesLength: number = 32) => new Uint8Array(bytesLength);
-
-if (typeof window == 'object' && 'crypto' in window) {
-  sha512 = async (message: Uint8Array) => {
-    const buffer = await window.crypto.subtle.digest('SHA-512', message.buffer);
-    return new Uint8Array(buffer);
-  };
-  randomPrivateKey = (bytesLength: number = 32): Uint8Array => {
-    return window.crypto.getRandomValues(new Uint8Array(bytesLength));
-  };
-} else if (typeof process === 'object' && 'node' in process.versions) {
-  const { createHash, randomBytes } = require('crypto');
-  sha512 = async (message: Uint8Array) => {
-    const hash = createHash('sha512');
-    hash.update(message);
-    return Uint8Array.from(hash.digest());
-  };
-  randomPrivateKey = (bytesLength: number = 32): Uint8Array => {
-    return new Uint8Array(randomBytes(bytesLength).buffer);
-  };
-} else {
-  throw new Error("The environment doesn't have sha512 function");
-}
 
 function concatTypedArrays(...arrays: Uint8Array[]): Uint8Array {
   if (arrays.length === 1) return arrays[0];
